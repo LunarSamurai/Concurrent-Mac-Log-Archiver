@@ -1,6 +1,6 @@
-```==================================================```
-          ```.logarchive Structure (macOS)```
-```==================================================```
+==================================================
+          .logarchive Structure (macOS)
+==================================================
 
 This archive is built to be compatible with macOS `log collect` and Console.app.
 
