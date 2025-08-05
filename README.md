@@ -7,7 +7,7 @@ This archive is built to be compatible with macOS `log collect` and Console.app.
 # Top-Level Layout
 
 -----------------
-MyCase.logarchive/
+MyCase.logarchive/ ..
 ├── uuidtext/             ← Binary `.tracev3` logs from /private/var/db/uuidtext  
 ├── system_logs/          ← Traditional system logs from /private/var/log  
 ├── diagnostics/          ← Crash logs, spin reports from /private/var/db/diagnostics  
