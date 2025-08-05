@@ -1,18 +1,45 @@
+Joseph Craig & Lunar Samurai Non‑Commercial Research License (2025)
+1. Definitions
+
+“Software” means the copyrighted computer programs and all associated documentation.
+
+“Non‑Commercial Research” means any scholarly, educational, or nonprofit research or teaching activity without monetary or profit motive, including grant‑funded academic work—but not use by for‑profit entities, or use linked to commercial benefit.
+
+“You” / “Licensee” means any individual or nonprofit acquiring or using the Software under this License.
+
+2. License Grant
+Subject to all terms below, the Copyright Holders grant Licensee a worldwide, non‑exclusive, non‑transferable, non‑sublicensable, royalty‑free license to use, copy, modify, and merge the Software solely for Non‑Commercial Research.
+
+3. Prohibited Uses
+Licensee may not use the Software for any commercial, revenue‑generating, or for‑profit purpose, nor may Licensee distribute, sublicense, transfer or use the Software in any for‑profit organization or activity without prior written consent from the Copyright Holders.
+
+4. Sublicensing and Transfer
+Licensee may not sublicense, assign, or transfer this License or the Software, except that Licensee may share unmodified copies with other nonprofit researchers under the same terms.
+
+5. Attribution & Notices
+Every copy — both original and modified — must include:
+
+The full copyright notice:
 Copyright (c) 2025 Joseph Craig and Lunar Samurai
 
-Permission is hereby granted, free of charge, to any individual or nonprofit researcher obtaining a copy
-of this software and associated documentation files (the "Software"), to deal in the Software without 
-restriction for strictly **non-commercial research or educational purposes**, including the rights to use, 
-copy, modify, and merge.
+This License document in full.
 
-Commercial or profit-generating use of this software by any entity (including but not limited to corporations,
-startups, or government organizations) is **expressly prohibited** without prior written permission from 
-the copyright holder.
+A prominent notice stating “Used under Joseph Craig & Lunar Samurai Non‑Commercial Research License 2025.”
 
-The above copyright notice and this notice shall be included in all copies or substantial portions of 
-the Software used for non-commercial purposes.
+6. Patent & Trademark Rights
+No patent or trademark rights are granted. If any patent is necessary to use the Software, such patent rights are not licensed and must be separately negotiated.
 
-THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT 
-LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. In no 
-event shall the authors or copyright holders be liable for any claim, damages or other liability arising 
-from, out of or in connection with the Software or the use or other dealings in the Software.
+7. Warranty Disclaimer / Limitation of Liability
+THE SOFTWARE IS PROVIDED “AS IS”, WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO IMPLIED WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE, OR NONINFRINGEMENT. In no event shall the authors be liable for any claim, damages, or liability, whether arising in contract, tort, strict liability, or otherwise, arising from or related to the Software or its use.
+
+8. Termination
+This License automatically terminates if Licensee breaches any term, including using the Software commercially. Upon termination, Licensee must immediately cease all use of the Software and destroy all copies.
+
+9. Governing Law & Jurisdiction
+This License is governed by the laws of the State of Alabama, United States. Any dispute shall be resolved exclusively in the federal or state courts located in Russell County, Alabama.
+
+10. Export Control & Compliance
+Licensee is responsible for complying with all applicable export, import, and data control laws. Licensee shall not export or re‑export the Software in violation of any applicable law or regulation.
+
+11. Entire Agreement
+This document constitutes the entire License between the parties. Any waiver or modification must be in writing and signed by the copyright holders.

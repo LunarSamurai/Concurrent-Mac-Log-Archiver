@@ -13,62 +13,84 @@ import (
 func main() {
 	printTitleBanner()
 	printBanner()
-	if len(os.Args) < 2 {
-		fmt.Println("Usage: log collect [--output output_dir.logarchive] [--input-dir files_req]")
+	if len(os.Args) < 2 || os.Args[1] != "collect" {
+		fmt.Println("Usage: log collect --input-dir <source> --macos <version> [--output <dest>.logarchive]")
 		return
 	}
 
-	if os.Args[1] == "collect" {
-		collectCmd := flag.NewFlagSet("collect", flag.ExitOnError)
-		output := collectCmd.String("output", "output.logarchive", "Directory to save the .logarchive")
-		inputDir := collectCmd.String("input-dir", "", "Path to folder with full /private and /Users tree")
-		collectCmd.Parse(os.Args[2:])
+	cmd := flag.NewFlagSet("collect", flag.ExitOnError)
+	input := cmd.String("input-dir", "", "Root of the source file tree (private/var, Users)")
+	output := cmd.String("output", "recovered.logarchive", "Destination .logarchive path")
+	macos := cmd.String("macos", "", "Source macOS version (e.g. 10.13, 10.14, 10.15, 12.0)")
+	cmd.Parse(os.Args[2:])
 
-		if *inputDir == "" {
-			fmt.Println("Error: --input-dir is required for deadbox collection.")
-			os.Exit(1)
-		}
+	if *input == "" || *macos == "" {
+		fmt.Println("Error: --input-dir and --macos are required")
+		os.Exit(1)
+	}
 
-		err := collectFromInputDir(*inputDir, *output)
-		if err != nil {
-			fmt.Println("Collection failed:", err)
-		}
-	} else {
-		fmt.Println("Unknown command:", os.Args[1])
+	ver, err := mapOSArchiveVersion(*macos)
+	if err != nil {
+		fmt.Println("Error:", err)
+		os.Exit(1)
+	}
+
+	if err := collectFromInputDir(*input, *output, *macos, ver); err != nil {
+		fmt.Println("Collection failed:", err)
+		os.Exit(1)
+	}
+
+	fmt.Printf("Log archive created at: %s (macOS %s → OSArchiveVersion=%d)\n", *output, *macos, ver)
+}
+
+func mapOSArchiveVersion(macos string) (int, error) {
+	// mapping based on live log collect Info.plist samples :contentReference[oaicite:2]{index=2}
+	switch macos {
+	case "10.12", "10.13":
+		return 3, nil
+	case "10.14", "10.15":
+		return 4, nil
+	case "12.0", "12", "13.0", "13", "14.0", "14":
+		return 5, nil // macOS Monterey and newer use version 5 :contentReference[oaicite:3]{index=3}
+	default:
+		return 0, fmt.Errorf("unsupported or unknown macOS version: %s", macos)
 	}
 }
 
-func collectFromInputDir(inputDir string, outputDir string) error {
-	fmt.Println("Using --input-dir mode to collect logs from deadbox folder")
-
+func collectFromInputDir(input, outputPath, osVersion string, archiveVer int) error {
 	srcMap := map[string]string{
-		"uuidtext":         filepath.Join(inputDir, "private", "var", "db", "uuidtext"),
-		"system_logs":      filepath.Join(inputDir, "private", "var", "log"),
-		"diagnostics":      filepath.Join(inputDir, "private", "var", "db", "diagnostics"),
-		"user_logs":        filepath.Join(inputDir, "Users"),
-		"timesync":         filepath.Join(inputDir, "private", "var", "db", "timesync"),
-		"live":             filepath.Join(inputDir, "private", "var", "db", "logd", "streams"),
-		"LogStoreMetadata": filepath.Join(inputDir, "private", "var", "db", "logd"),
-		"network":          filepath.Join(inputDir, "private", "var", "log", "DiagnosticMessages"),
+		"diagnostics":      filepath.Join(input, "private", "var", "db", "diagnostics"),
+		"uuidtext":         filepath.Join(input, "private", "var", "db", "uuidtext"),
+		"timesync":         filepath.Join(input, "private", "var", "db", "timesync"),
+		"system_logs":      filepath.Join(input, "private", "var", "log"),
+		"user_logs":        filepath.Join(input, "Users"),
+		"live":             filepath.Join(input, "private", "var", "db", "logd", "streams"),
+		"LogStoreMetadata": filepath.Join(input, "private", "var", "db", "logd"),
+		"network":          filepath.Join(input, "private", "var", "log", "DiagnosticMessages"),
 	}
 
-	logarchivePath := filepath.Clean(outputDir)
-	if !strings.HasSuffix(logarchivePath, ".logarchive") {
-		logarchivePath += ".logarchive"
+	if !strings.HasSuffix(outputPath, ".logarchive") {
+		outputPath += ".logarchive"
 	}
-	os.MkdirAll(logarchivePath, 0755)
+	if err := os.MkdirAll(outputPath, 0755); err != nil {
+		return err
+	}
 
-	for name, src := range srcMap {
-		dst := filepath.Join(logarchivePath, name)
+	fmt.Println("Creating .logarchive at", outputPath)
+	for label, src := range srcMap {
+		dst := filepath.Join(outputPath, label)
 		fmt.Printf("Copying %s → %s\n", src, dst)
-		err := copyDirectory(src, dst)
-		if err != nil {
-			fmt.Printf("Failed to copy %s: %v\n", name, err)
+		if err := copyDirectory(src, dst); err != nil {
+			fmt.Printf("Warning: failed to copy %s: %v\n", label, err)
 		}
 	}
 
-	infoPlistPath := filepath.Join(logarchivePath, "Info.plist")
-	return os.WriteFile(infoPlistPath, []byte(examplePlist()), 0644)
+	plist := buildPlist(osVersion, archiveVer)
+	if err := os.WriteFile(filepath.Join(outputPath, "Info.plist"), []byte(plist), 0644); err != nil {
+		return err
+	}
+
+	return nil
 }
 
 func copyDirectory(src, dest string) error {
@@ -76,37 +98,33 @@ func copyDirectory(src, dest string) error {
 		if err != nil {
 			return err
 		}
-		relPath := strings.TrimPrefix(path, src)
-		targetPath := filepath.Join(dest, relPath)
-
+		rel, _ := filepath.Rel(src, path)
+		target := filepath.Join(dest, rel)
 		if info.IsDir() {
-			return os.MkdirAll(targetPath, info.Mode())
+			return os.MkdirAll(target, info.Mode())
 		}
-
 		data, err := os.ReadFile(path)
 		if err != nil {
 			return err
 		}
-		return os.WriteFile(targetPath, data, info.Mode())
+		return os.WriteFile(target, data, info.Mode())
 	})
 }
 
-func examplePlist() string {
-	return `<?xml version="1.0" encoding="UTF-8"?>
+func buildPlist(osVersion string, archiveVer int) string {
+	return fmt.Sprintf(`<?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN"
  "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
 <dict>
-	<key>OSVersion</key>
-	<string>macOS 12.0</string>
-	<key>LogArchiveVersion</key>
-	<integer>1</integer>
-	<key>Collected</key>
-	<true/>
-	<key>TimeCreated</key>
-	<date>` + time.Now().UTC().Format("2006-01-02T15:04:05Z") + `</date>
+  <key>OSVersion</key><string>macOS %s</string>
+  <key>LogArchiveVersion</key><integer>1</integer>
+  <key>OSArchiveVersion</key><integer>%d</integer>
+  <key>Collected</key><true/>
+  <key>TimeCreated</key>
+  <date>%s</date>
 </dict>
-</plist>`
+</plist>`, osVersion, archiveVer, time.Now().UTC().Format("2006-01-02T15:04:05Z"))
 }
 
 func printBanner() string {
