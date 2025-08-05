@@ -44,17 +44,32 @@ func main() {
 }
 
 func mapOSArchiveVersion(macos string) (int, error) {
-	// mapping based on live log collect Info.plist samples :contentReference[oaicite:2]{index=2}
-	switch macos {
-	case "10.12", "10.13":
+	// Based on mapping observed in live log collect Info.plist files :contentReference[oaicite:1]{index=1}
+	// macOS Sierra (10.12) → archiveVersion 3
+	// macOS Mojave / Catalina (10.14 / 10.15) → archiveVersion 4
+	// Monterey onward (12.x, 13.x, 14.x, 15.x/Sequoia up to 15.6) → 5 :contentReference[oaicite:2]{index=2}
+
+	// Normalize version string
+	v := strings.TrimSpace(macos)
+
+	// 10.12–10.13 → 3
+	if strings.HasPrefix(v, "10.12") || strings.HasPrefix(v, "10.13") {
 		return 3, nil
-	case "10.14", "10.15":
-		return 4, nil
-	case "12.0", "12", "13.0", "13", "14.0", "14":
-		return 5, nil // macOS Monterey and newer use version 5 :contentReference[oaicite:3]{index=3}
-	default:
-		return 0, fmt.Errorf("unsupported or unknown macOS version: %s", macos)
 	}
+	// 10.14–10.15 → 4
+	if strings.HasPrefix(v, "10.14") || strings.HasPrefix(v, "10.15") {
+		return 4, nil
+	}
+	// 12.x, 13.x, 14.x, 15.x, 16.x → 5
+	majorMinor := strings.Split(v, ".")
+	if len(majorMinor) >= 1 {
+		base := majorMinor[0]
+		switch base {
+		case "12", "13", "14", "15", "16":
+			return 5, nil
+		}
+	}
+	return 0, fmt.Errorf("unsupported or unknown macOS version: %s", macos)
 }
 
 func collectFromInputDir(input, outputPath, osVersion string, archiveVer int) error {
@@ -148,20 +163,37 @@ func printBanner() string {
 
 func printTitleBanner() {
 	fmt.Println("┌──────────────────────────────────────────────────────────────────────────────────────┐")
-	fmt.Println("│	         	     ███╗   ███╗ █████╗  ██████╗ ██████╗ ███████╗         			 	│")
-	fmt.Println("│	         	     ████╗ ████║██╔══██╗██╔════╝██╔═══██╗██╔════╝         			 	│")
-	fmt.Println("│	           	     ██╔████╔██║███████║██║     ██║   ██║███████╗         			 	│")
-	fmt.Println("│	         	     ██║╚██╔╝██║██╔══██║██║     ██║   ██║╚════██║						│")
-	fmt.Println("│  		 	     ██║ ╚═╝ ██║██║  ██║╚██████╗╚██████╔╝███████║						│")
-	fmt.Println("│				     ╚═╝     ╚═╝╚═╝  ╚═╝ ╚═════╝ ╚═════╝ ╚══════╝					 	│")
-	fmt.Println("│	    __                     ___                    __      _                      	│")
-	fmt.Println("│	   / /   ____    ____ _   /   |   _____  _____   / /_    (_) _   __  ___    _____	│")
-	fmt.Println("│	  / /   / __\\  / __ `/  / /| |  / ___/ / ___/  / __ \\ / / | | / / / _ \\ / ___/	│")
-	fmt.Println("│	 / /___/ /_/ / / /_/ /  / ___ | / /    / /__   / / / / / /  | |/ / /  __/ / /    	│")
-	fmt.Println("│	/_____/\\___/  \\_, /  /_/  |_|/_/     \\__/  /_/ /_/ /_/   |___/  \\__/ /_/     	│")
-	fmt.Println("│		          /____/                                                             	│")
-	fmt.Println("│    			   		                                            				 	│")
-	fmt.Println("│    			   		          Deadbox Edition                     				 	│")
-	fmt.Println("│          		 		  github.com/LunarSamurai   		        			 	│")
+	fmt.Println("│                   ███╗   ███╗ █████╗  ██████╗ ██████╗ ███████╗                       │")
+	fmt.Println("│                   ████╗ ████║██╔══██╗██╔════╝██╔═══██╗██╔════╝                       │")
+	fmt.Println("│                   ██╔████╔██║███████║██║     ██║   ██║███████╗                       │")
+	fmt.Println("│                   ██║╚██╔╝██║██╔══██║██║     ██║   ██║╚════██║                       │")
+	fmt.Println("│                   ██║ ╚═╝ ██║██║  ██║╚██████╗╚██████╔╝███████║                       │")
+	fmt.Println("│                   ╚═╝     ╚═╝╚═╝  ╚═╝ ╚═════╝ ╚═════╝ ╚══════╝                       │")
+	fmt.Println("│      __                     ___                    __                                │")
+	fmt.Println("│     / /   ____    ____ _   /   |   _____  _____   / /_    (_) _   __  ___    _____   │")
+	fmt.Println("│    / /   / __ \\  / __ `/  / /| |  / ___/ / ___/  / ___\\  / / | | / / / _ \\  / ___/   │")
+	fmt.Println("│   / /___/ /_/ / / /_/ /  / ___ | / /    / /__   / / / / / /  | |/ / /  __/ / /       │")
+	fmt.Println("│  /_____/ \\___/  \\_,  /  /_/  |_|/_/     \\___/  /_/ /_/ /_/   |___/  \\___/ /_/        │")
+	fmt.Println("│               /____/                                                                 │")
+	fmt.Println("│                                                                                      │")
+	fmt.Println("│                                Deadbox Edition                                       │")
+	fmt.Println("│                                 Version 1.0.0                                        │")
+	fmt.Println("│                            github.com/LunarSamurai                                   │")
 	fmt.Println("└──────────────────────────────────────────────────────────────────────────────────────┘")
+	fmt.Println(`
+                                              |
+                                             |  |
+                                              |
+                                         _ /_
+                                    |   ( '' )
+                                     |   '~~'
+                                    |         |
+                                      _ /_   |  |                
+                                     ( '' )  _\ _
+                                 __---'~~'--( '' )--__
+                                |||||||||||||||||||||||
+                                 |  _ _ _  __   ___  |
+                                 |  \_|_/  __|_   |  |
+                                  \_________________/
+                                                `)
 }
