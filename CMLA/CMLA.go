@@ -12,7 +12,6 @@ import (
 
 func main() {
 	printTitleBanner()
-	printBanner()
 	if len(os.Args) < 2 || os.Args[1] != "collect" {
 		fmt.Println("Usage: log collect --input-dir <source> --macos <version> [--output <dest>.logarchive]")
 		return
@@ -41,6 +40,8 @@ func main() {
 	}
 
 	fmt.Printf("Log archive created at: %s (macOS %s → OSArchiveVersion=%d)\n", *output, *macos, ver)
+	printProcessCompleteBanner()
+	printTitleBanner()
 }
 
 func mapOSArchiveVersion(macos string) (int, error) {
@@ -74,14 +75,14 @@ func mapOSArchiveVersion(macos string) (int, error) {
 
 func collectFromInputDir(input, outputPath, osVersion string, archiveVer int) error {
 	srcMap := map[string]string{
-		"diagnostics":      filepath.Join(input, "private", "var", "db", "diagnostics"),
-		"uuidtext":         filepath.Join(input, "private", "var", "db", "uuidtext"),
-		"timesync":         filepath.Join(input, "private", "var", "db", "timesync"),
-		"system_logs":      filepath.Join(input, "private", "var", "log"),
-		"user_logs":        filepath.Join(input, "Users"),
-		"live":             filepath.Join(input, "private", "var", "db", "logd", "streams"),
-		"LogStoreMetadata": filepath.Join(input, "private", "var", "db", "logd"),
-		"network":          filepath.Join(input, "private", "var", "log", "DiagnosticMessages"),
+		"diagnostics":      filepath.Join(input, "var", "db", "diagnostics", "**"),
+		"uuidtext":         filepath.Join(input, "var", "db", "uuidtext", "**"),
+		"timesync":         filepath.Join(input, "var", "db", "diagnostics", "timesync"),
+		"system_logs":      filepath.Join(input, "var", "log"),
+		"user_logs":        filepath.Join(input, "Library", "Logs"),
+		"live":             filepath.Join(input, "var", "db", "logd", "streams"),
+		"LogStoreMetadata": filepath.Join(input, "var", "db", "logd"),
+		"network":          filepath.Join(input, "var", "log", "DiagnosticMessages"),
 	}
 
 	if !strings.HasSuffix(outputPath, ".logarchive") {
@@ -94,9 +95,26 @@ func collectFromInputDir(input, outputPath, osVersion string, archiveVer int) er
 	fmt.Println("Creating .logarchive at", outputPath)
 	for label, src := range srcMap {
 		dst := filepath.Join(outputPath, label)
-		fmt.Printf("Copying %s → %s\n", src, dst)
-		if err := copyDirectory(src, dst); err != nil {
-			fmt.Printf("Warning: failed to copy %s: %v\n", label, err)
+
+		if strings.Contains(src, "**") {
+			matches, err := filepath.Glob(src)
+			if err != nil {
+				fmt.Printf("Warning: invalid pattern %s: %v\n", src, err)
+				continue
+			}
+			for _, srcRecursive := range matches {
+				base := filepath.Base(srcRecursive)
+				dstMatch := filepath.Join(outputPath, base)
+				fmt.Printf("Copying (wildcard) %s -> %s\n", srcRecursive, dstMatch)
+				if err := copyDirectory(srcRecursive, dstMatch); err != nil {
+					fmt.Printf("Warning: failed to copy %s: %v\n", srcRecursive, err)
+				}
+			}
+		} else {
+			fmt.Printf("Copying %s -> %s\n", src, dst)
+			if err := copyDirectory(src, dst); err != nil {
+				fmt.Printf("Warning: failed to copy %s: %v\n", label, err)
+			}
 		}
 	}
 
@@ -142,24 +160,7 @@ func buildPlist(osVersion string, archiveVer int) string {
 </plist>`, osVersion, archiveVer, time.Now().UTC().Format("2006-01-02T15:04:05Z"))
 }
 
-func printBanner() string {
-	return `
-		                   |
-                  |  |
-                     |
-                 _ /_
-            |   ( '' )
-             |   '~~'
-           |         |
-            _ /_   |  |                
-           ( '' )  _\ _
-       __---'~~'--( '' )--__
-      |||||||||||||||||||||||
-       |  _ _ _  __   ___  |
-       |  \_|_/  __|_   |  |
-        \_________________/
-	`
-}
+// ============================ ASCII Art Section ============================
 
 func printTitleBanner() {
 	fmt.Println("┌──────────────────────────────────────────────────────────────────────────────────────┐")
@@ -196,4 +197,24 @@ func printTitleBanner() {
                                  |  \_|_/  __|_   |  |
                                   \_________________/
                                                 `)
+}
+
+func printProcessCompleteBanner() {
+	const (
+		green = "\033[32m" // ANSI code for green text
+		reset = "\033[0m"  // Resets colors to the terminal default
+	)
+
+	processCompleteBanner := `
+====================================================================================================
+        ____                                    ______                      __     __     
+       / __ \_________  ________  __________   / ____/___  ____ ___  ____  / /__  / /____ 
+      / /_/ / ___/ __ \/ ___/ _ \/ ___/ ___/  / /   / __ \/ __ '__ \/ __ \/ / _ \/ __/ _ \
+     / ____/ /  / /_/ / /__/  __(__  |__  )  / /___/ /_/ / / / / / / /_/ / /  __/ /_/  __/
+    /_/   /_/   \____/\___/\___/____/____/   \____/\____/_/ /_/ /_/ .___/_/\___/\__/\___/ 
+                                                                 /_/                      
+====================================================================================================																 
+	`
+
+	fmt.Println("\n\n" + green + processCompleteBanner + reset + "\n\n")
 }
